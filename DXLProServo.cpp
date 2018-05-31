@@ -20,13 +20,15 @@ using namespace std;
 
 /*///////////////////////////////////////////////////////////////////////////////
 Created by: Sayyed Omar Kamal
-Date: 29 March 2018
+Date: 31 May 2018
 
-For Dynamixel MX-64 Servos.
+For Dynamixel Pro servos, based on MX-64 servo control. Basic C++ function calls working properly in Linux. 
+TOADD: Pro servo address and additional functions
 *////////////////////////////////////////////////////////////////////////////////
 
-#include "DXLServo.h"
+#include "DXLProServo.h"
 
+/*
 // If getch() needed. getch call for Windows is _getch(), for non-Windows, need to use below code
 int getch(void)
 {
@@ -44,6 +46,7 @@ int getch(void)
 //    return _getch();
 //#endif
 }
+*/
 
 // if kbhit() needed
 /*
@@ -100,30 +103,15 @@ DXLServo::~DXLServo() {							// Destructor
 
 }
 
-/*void setDeviceName(int deviceNum) {
-    char numstr[21]; // enough to hold all numbers up to 64-bits
-    sprintf_s(numstr, "%f", deviceNum);
-    //std::string deviceName = std::string( "COM" );
-    deviceName = deviceName + numstr;
-}*/
-
-/*void DXLServo::initPortHandler() {				// Initialize PortHandler instance, port path, etc
-    dynamixel::PortHandler *portHandler = dynamixel::PortHandler::getPortHandler( deviceName.c_str() );
-}*/
-
-/*void DXLServo::initPacketHandler() {			// Initialize PacketHandler instance, protocol version, etc
-    dynamixel::PacketHandler *packetHandler = dynamixel::PacketHandler::getPacketHandler( protocolVersion );
-}*/
-
 void DXLServo::enableTorque() {			// Enable Dynamixel Torque
-    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, identity, ADDR_MX_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
+    dxl_comm_result = this->pktHandler->write1ByteTxRx(this->prtHandler, identity, ADDR_MX_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf( "%s\n", packetHandler->getTxRxResult( dxl_comm_result ) );
+        printf( "%s\n", this->pktHandler->getTxRxResult( dxl_comm_result ) );
     }
     else if (dxl_error != 0)
     {
-        printf( "%s\n", packetHandler->getRxPacketError( dxl_error ) );
+        printf( "%s\n", this->pktHandler->getRxPacketError( dxl_error ) );
     }
     else
     {
@@ -132,14 +120,14 @@ void DXLServo::enableTorque() {			// Enable Dynamixel Torque
 }
 
 void DXLServo::disableTorque() {			// Disable Dynamixel Torque
-    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, identity, ADDR_MX_TORQUE_ENABLE, TORQUE_DISABLE, &dxl_error);
+    dxl_comm_result = this->pktHandler->write1ByteTxRx(this->prtHandler, identity, ADDR_MX_TORQUE_ENABLE, TORQUE_DISABLE, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 }
 
@@ -174,40 +162,45 @@ void DXLServo::writeGoalPosition( int vectorPosition) {						// Write DXL positi
         printf( "Error! Goal Position Vector is empty!\n" );
     }
     else {
-        dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_GOAL_POSITION, goalPositionVector[vectorPosition], &dxl_error);
+        dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_GOAL_POSITION, goalPositionVector[vectorPosition], &dxl_error);
         if (dxl_comm_result != COMM_SUCCESS)
         {
-            printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+            printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
         }
         else if (dxl_error != 0)
         {
-            printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+            printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
         }
     }
+    //return;
 }
 
 void DXLServo::writeGoalPosition(int select, int vectorPosition) {
     if ( select == 0 ) {			// Internal Position Vector
-        dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_GOAL_POSITION, goalPositionVector[vectorPosition], &dxl_error);
+        if( vectorPosition > goalPositionVector.size() || vectorPosition < 0){
+            printf("Error! Invalid vector reference!");
+            return;
+        }
+        dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_GOAL_POSITION, goalPositionVector[vectorPosition], &dxl_error);
         if (dxl_comm_result != COMM_SUCCESS)
         {
-            printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+            printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
         }
         else if (dxl_error != 0)
         {
-            printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+            printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
         }
     }
     else if ( select == 1 ) {		// Direct entry
         if ( vectorPosition >= 0 && vectorPosition < 4096) {
-            dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_GOAL_POSITION, vectorPosition, &dxl_error);
+            dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_GOAL_POSITION, vectorPosition, &dxl_error);
             if (dxl_comm_result != COMM_SUCCESS)
             {
-                printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+                printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
             }
             else if (dxl_error != 0)
             {
-                printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+                printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
             }
         }
         else {
@@ -215,56 +208,72 @@ void DXLServo::writeGoalPosition(int select, int vectorPosition) {
         }
     }
     else {
-        printf("Error! Invalid Select value; 0 for direct entry or 1 for internal reference!\n");
+        printf("Error! Invalid Select value; 0 for internal reference or 1 for direct entry!\n");
     }
 }
 
 int DXLServo::readCurrentPosition() {
-    dxl_comm_result = packetHandler->read4ByteTxRx(portHandler, identity, ADDR_MX_PRESENT_POSITION, (uint32_t*)&present_position, &dxl_error);
+    int position = -1;
+    dxl_comm_result = this->pktHandler->read4ByteTxRx(this->prtHandler, identity, ADDR_MX_PRESENT_POSITION, (uint32_t*)&position, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf( "%s\n", packetHandler->getTxRxResult( dxl_comm_result ) );
+        printf( "%s\n", this->pktHandler->getTxRxResult( dxl_comm_result ) );
     }
     else if (dxl_error != 0)
     {
-        printf( "%s\n", packetHandler->getRxPacketError( dxl_error ) );
+        printf( "%s\n", this->pktHandler->getRxPacketError( dxl_error ) );
     }
-    return present_position;
+
+    if(position < 0){
+        printf("Error! Position value is negative! Unexpected Error\n");
+        return -1;
+    }
+
+    return present_position = position;
 }
 
 int DXLServo::checkOperating() {
-    uint8_t set_operate_mode = -1;
-    dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, identity, ADDR_MX_OPERATING_MODE, (uint8_t*)&set_operate_mode, &dxl_error);
+    uint8_t *set_operate_mode = new uint8_t;
+    dxl_comm_result = this->pktHandler->read1ByteTxRx(this->prtHandler, identity, ADDR_MX_OPERATING_MODE, set_operate_mode, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
-    if (set_operate_mode < 0) {
+
+    int opMode = 0;
+    opMode = (opMode << 8) + set_operate_mode[0];
+
+    if (opMode < 0) {
         printf("Error! Operate Mode value is negative!\n");
+        return -1;
     }
-    else return set_operate_mode;
+    else return opMode;
 }
 
 int DXLServo::checkPositionMode() {
-    uint8_t set_operate_mode = -1;
-    dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, identity, ADDR_MX_OPERATING_MODE, (uint8_t*)&set_operate_mode, &dxl_error);
+    uint8_t *set_operate_mode = new uint8_t;
+    dxl_comm_result = this->pktHandler->read1ByteTxRx(this->prtHandler, identity, ADDR_MX_OPERATING_MODE, set_operate_mode, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
-    if (set_operate_mode < 0) {
+
+    int opMode = 0;
+    opMode = (opMode << 8) + set_operate_mode[0];
+
+    if (opMode < 0) {
         printf("Error! Operate Mode value is negative! Unexpected error!\n");
         return -1;
     }
-    else if (set_operate_mode != 3) {
+    else if (opMode != 3) {
         printf("Warning! Operate Mode not set to Position Control!\n");
         return 0;
     }
@@ -287,26 +296,26 @@ void DXLServo::setOperatingMode(int mode) {
     case 5: opMode = DXL_PWM_CONTROL_MODE;
         break;
     }
-    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, identity, ADDR_MX_OPERATING_MODE, opMode, &dxl_error);
+    dxl_comm_result = this->pktHandler->write1ByteTxRx(this->prtHandler, identity, ADDR_MX_OPERATING_MODE, opMode, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 }
 
 void DXLServo::set4ACurrentLimit() {
-    dxl_comm_result = packetHandler->write2ByteTxRx(portHandler, identity, ADDR_MX_CURRENT_LIMIT, DXL_CURRENT_LIMIT_4A, &dxl_error);
+    dxl_comm_result = this->pktHandler->write2ByteTxRx(this->prtHandler, identity, ADDR_MX_CURRENT_LIMIT, DXL_CURRENT_LIMIT_4A, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     limitCurrent = DXL_CURRENT_LIMIT_4A;
@@ -320,14 +329,14 @@ void DXLServo::setCurrentAmpsLimit(double amps) {
 
     int limit = int( int( (amps / 0.00336) + 0.5 ) );								// Rounding number trick; int(float value + 0.5)
 
-    dxl_comm_result = packetHandler->write2ByteTxRx(portHandler, identity, ADDR_MX_CURRENT_LIMIT, limit, &dxl_error);
+    dxl_comm_result = this->pktHandler->write2ByteTxRx(this->prtHandler, identity, ADDR_MX_CURRENT_LIMIT, limit, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     limitCurrent = limit;
@@ -338,28 +347,28 @@ void DXLServo::setCurrentAmpsLimit(int limit) {
         printf("Error! Invalid value of current limit! Select between 0 and 1941!\n");
         return;
     }
-    dxl_comm_result = packetHandler->write2ByteTxRx(portHandler, identity, ADDR_MX_CURRENT_LIMIT, limit, &dxl_error);
+    dxl_comm_result = this->pktHandler->write2ByteTxRx(this->prtHandler, identity, ADDR_MX_CURRENT_LIMIT, limit, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     limitCurrent = limit;
 }
 
 void DXLServo::set80rpmVelLimit() {
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_VELOCITY_LIMIT, DXL_VELOCITY_LIMIT_80, &dxl_error);
+    dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_VELOCITY_LIMIT, DXL_VELOCITY_LIMIT_80, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     limitVel = DXL_VELOCITY_LIMIT_80;
@@ -370,28 +379,43 @@ void DXLServo::setVelocityLimit(int limit) {
         printf("Error! Invalid value of velocity limit! Select between 0 and 1023!\n");
         return;
     }
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_VELOCITY_LIMIT, limit, &dxl_error);
+    dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_VELOCITY_LIMIT, limit, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     limitVel = limit;
 }
 
-void DXLServo::setlowAccelLimit() {
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_ACCELERATION_LIMIT, DXL_ACCELERATION_LIMIT_LOW, &dxl_error);
+int DXLServo::getVelocityLimit(){
+    int velocLim = 0;
+    dxl_comm_result = this->pktHandler->read4ByteTxRx(this->prtHandler, identity, ADDR_MX_VELOCITY_LIMIT, (uint32_t*)&velocLim, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
+    }
+
+    return velocLim;
+}
+
+void DXLServo::setlowAccelLimit() {
+    dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_ACCELERATION_LIMIT, DXL_ACCELERATION_LIMIT_LOW, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS)
+    {
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
+    }
+    else if (dxl_error != 0)
+    {
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     limitAccel = DXL_ACCELERATION_LIMIT_LOW;
@@ -402,20 +426,36 @@ void DXLServo::setAccelLimit(int limit) {
         printf("Error! Invalid value of acceleration limit! Select between 0 and 100!/n100 value limit for safe operation!\n");
         return;
     }
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_ACCELERATION_LIMIT, limit, &dxl_error);
+    dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_ACCELERATION_LIMIT, limit, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     limitAccel = limit;
 }
 
+int DXLServo::getAccelLimit(){
+    int accelLim = 0;
+    dxl_comm_result = this->pktHandler->read4ByteTxRx(this->prtHandler, identity, ADDR_MX_ACCELERATION_LIMIT, (uint32_t*)&accelLim, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS)
+    {
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
+    }
+    else if (dxl_error != 0)
+    {
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
+    }
+
+    return accelLim;
+}
+
 void DXLServo::setPositionLimit(bool minMax, int angle) {
+	//TOCHANGE: include overload for using position value (0-4095) instead of angle; use double for angle, int for value
     int address = 0;
     if ( !minMax ) {									// minMax == false, Min Position Limit
         address = ADDR_MX_MIN_POSITION_LIMIT;
@@ -424,14 +464,14 @@ void DXLServo::setPositionLimit(bool minMax, int angle) {
 
     int limit = int( ( double(angle + 180)/0.088 ) + 0.5 );
 
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, address, limit, &dxl_error);
+    dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, address, limit, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     if (!minMax)	limitPosMin = limit;
@@ -448,14 +488,14 @@ void DXLServo::setProfileAcceleration(int accel) {
         return;
     }
 
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_PROFILE_ACCELERATION, accel, &dxl_error);
+    dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_PROFILE_ACCELERATION, accel, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     profileAccel = accel;
@@ -463,14 +503,14 @@ void DXLServo::setProfileAcceleration(int accel) {
 
 int DXLServo::checkProfileAcceleration() {
     int accel = -1;
-    dxl_comm_result = packetHandler->read4ByteTxRx(portHandler, identity, ADDR_MX_PROFILE_ACCELERATION, (uint32_t*)&accel, &dxl_error);
+    dxl_comm_result = this->pktHandler->read4ByteTxRx(this->prtHandler, identity, ADDR_MX_PROFILE_ACCELERATION, (uint32_t*)&accel, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     if (accel < 0) {
@@ -490,14 +530,14 @@ void DXLServo::setProfileVelocity(int vel) {
         return;
     }
 
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, identity, ADDR_MX_PROFILE_ACCELERATION, vel, &dxl_error);
+    dxl_comm_result = this->pktHandler->write4ByteTxRx(this->prtHandler, identity, ADDR_MX_PROFILE_VELOCITY, vel, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     profileVel = vel;
@@ -505,14 +545,14 @@ void DXLServo::setProfileVelocity(int vel) {
 
 int DXLServo::checkProfileVelocity() {
     int vel = -1;
-    dxl_comm_result = packetHandler->read4ByteTxRx(portHandler, identity, ADDR_MX_PROFILE_VELOCITY, (uint32_t*)&vel, &dxl_error);
+    dxl_comm_result = this->pktHandler->read4ByteTxRx(this->prtHandler, identity, ADDR_MX_PROFILE_VELOCITY, (uint32_t*)&vel, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
     if (vel < 0) {
@@ -523,42 +563,48 @@ int DXLServo::checkProfileVelocity() {
 }
 
 int DXLServo::checkPresentTemperature() {
-    int limitTemp = -1;
-    dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, identity, ADDR_MX_TEMPERATURE_LIMIT, (uint8_t*)limitTemp, &dxl_error);
+    uint8_t *limitTemp = new uint8_t;
+    dxl_comm_result = this->pktHandler->read1ByteTxRx(this->prtHandler, identity, ADDR_MX_TEMPERATURE_LIMIT, limitTemp, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
-    if (limitTemp < 0) {					// Error in comm function return, unexpected error
+    int limTemp = 0;
+    limTemp = (limTemp << 8) + limitTemp[0];
+
+    if (limTemp < 0) {					// Error in comm function return, unexpected error
         printf("Error! Value (EEPROM Limit) is negative! Unexpected error!\n");
         return -1;
     }
     else {									// Return value should be 80 with Temp Limit EEPROM value unchanged
-        int presTemp = -1;
-        dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, identity, ADDR_MX_PRESENT_TEMPERATURE, (uint8_t*)presTemp, &dxl_error);
+        uint8_t *presTemp = new uint8_t;
+        dxl_comm_result = this->pktHandler->read1ByteTxRx(this->prtHandler, identity, ADDR_MX_PRESENT_TEMPERATURE, presTemp, &dxl_error);
         if (dxl_comm_result != COMM_SUCCESS)
         {
-            printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+            printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
         }
         else if (dxl_error != 0)
         {
-            printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+            printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
         }
 
-        if (presTemp < 0) {
+        int valTemp = 0;
+        valTemp = (valTemp << 8) + presTemp[0];
+
+        if (valTemp < 0) {
             printf("Error! Value (Presnt Temperature) is negative! Unexpected error!\n");
             return -1;
         }
-        else if ( presTemp >= (0.9 * limitTemp) && presTemp < limitTemp ) {			// If Present Temperature is around 90% of limit or higher but lower than limit
-            printf("Warning! Temperature has reached 90% of limit!\n");
+        else if ( valTemp >= (0.9 * limTemp) && valTemp < limTemp ) {			// If Present Temperature is around 90% of limit or higher but lower than limit
+            printf("Warning! Temperature has reached 90 percent of limit!\n");
             return 1;
         }
-        else if (presTemp >= limitTemp) {					// If Present Temperature is at or exceeds limit ( 80 - 100 C )
+        else if (valTemp >= limTemp) {					// If Present Temperature is at or exceeds limit ( 80 - 100 C )
             printf("Error! Temperature has exceeded limit! Shutdown triggering!\n");
             return 2;
         }
@@ -567,22 +613,25 @@ int DXLServo::checkPresentTemperature() {
 }
 
 int DXLServo::getPresentTemperature() {
-    int presTemp = -1;
-    dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, identity, ADDR_MX_PRESENT_TEMPERATURE, (uint8_t*)presTemp, &dxl_error);
+    uint8_t *presTemp = new uint8_t;
+    dxl_comm_result = this->pktHandler->read1ByteTxRx(this->prtHandler, identity, ADDR_MX_PRESENT_TEMPERATURE, presTemp, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
-    if (presTemp < 0 || presTemp > 100) {							// Present Temperature valid range: 0 - 100, outside range -> Error
+    int valTemp = 0;
+    valTemp = (valTemp << 8) + presTemp[0];
+
+    if ( valTemp < 0 || valTemp > 100) {							// Present Temperature valid range: 0 - 100, outside range -> Error
         printf("Error! Value is outside valid range! Unexpected error!\n");
         return -1;
     }
-    return presTemp;			// Temperature value ~= Actual Temperature, 1:1 relation
+    return valTemp;			// Temperature value ~= Actual Temperature, 1:1 relation
 }
 
 int DXLServo::checkPresentCurrent() {
@@ -591,26 +640,29 @@ int DXLServo::checkPresentCurrent() {
         return -1;
     }
     else {
-        int presCurr = -1;
-        dxl_comm_result = packetHandler->read2ByteTxRx(portHandler, identity, ADDR_MX_PRESENT_CURRENT, (uint16_t*)presCurr, &dxl_error);
+        uint16_t *presCur = new uint16_t;
+        dxl_comm_result = this->pktHandler->read2ByteTxRx(this->prtHandler, identity, ADDR_MX_PRESENT_CURRENT, presCur, &dxl_error);
         if (dxl_comm_result != COMM_SUCCESS)
         {
-            printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+            printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
         }
         else if (dxl_error != 0)
         {
-            printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+            printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
         }
 
-        if (presCurr < 0) {
+        int current = 0;
+        current = ( (current << 16) + presCur[0] ) | ( (current << 8) + presCur[1] );
+
+        if (current < 0) {
             printf("Error! Value is negative! Unexpected Error!\n");
             return -1;
         }
-        else if (presCurr >= (0.9*limitCurrent) && presCurr < limitCurrent) {
+        else if (current >= (0.9*limitCurrent) && current < limitCurrent) {
             printf("Warning! Current is close to limit!\n");
             return 1;
         }
-        else if (presCurr >= limitCurrent) {
+        else if (current >= limitCurrent) {
             printf("Error! Current has exceeded limit!\n");
             return 2;
         }
@@ -618,32 +670,54 @@ int DXLServo::checkPresentCurrent() {
     return 0;
 }
 
-int DXLServo::getPresentCurrent() {
-    int presCurr = -1;
-    dxl_comm_result = packetHandler->read2ByteTxRx(portHandler, identity, ADDR_MX_PRESENT_CURRENT, (uint16_t*)presCurr, &dxl_error);
+double DXLServo::getPresentCurrent() {
+    uint16_t *presCur = new uint16_t;
+    dxl_comm_result = this->pktHandler->read2ByteTxRx(this->prtHandler, identity, ADDR_MX_PRESENT_CURRENT, presCur, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
-        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0)
     {
-        printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
     }
 
-    if (presCurr < 0 || presCurr > 1941) {										// Present Current valid range: 0 - 1941
+    int current = 0;
+    current = ( (current << 16) + presCur[0] ) | ( (current << 8) + presCur[1] );
+
+    if (current < 0 || current > 1941) {										// Present Current valid range: 0 - 1941
         printf("Error! Value is outside valid range! Unexpected Error!\n");
         return -1;
     }
-    //presCurr = presCurr * 0.00336;												// Present Current value * 3.36mA = Actual Current {uncomment if conversion wanted}
-    return presCurr;
+
+    double actCurr = static_cast<double>(current);
+    actCurr = actCurr * 0.00336;
+    //current = current * 0.00336;												// Present Current value * 3.36mA = Actual Current {uncomment if conversion wanted}
+    return actCurr;
+}
+
+int DXLServo::getHomingOffset(){
+    int homeOffset = 0;
+    dxl_comm_result = this->pktHandler->read4ByteTxRx(this->prtHandler, identity, ADDR_MX_HOMING_OFFSET, (uint32_t*)&homeOffset, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS)
+    {
+        printf("%s\n", this->pktHandler->getTxRxResult(dxl_comm_result));
+    }
+    else if (dxl_error != 0)
+    {
+        printf("%s\n", this->pktHandler->getRxPacketError(dxl_error));
+    }
+
+    return homeOffset;
 }
 
 ////////////////////////////////////////////////////   End of DXLServo class   /////////////////////////////////////////////////////////////////////////////////////////////
 
-///*
+/*
 ////////////////////
 //		29 Mar 2018 changes not yet implemented in example.
 //      21 May: Linux test
+//		31 May: Updated working test code to read DXL status and write position to tilt Servo.
 ////////////////////
 
 ////////////////////////////////////////////////////    Example Code Using DXLServo functions    ///////////////////////////////////////////////////////////////////////////
@@ -655,143 +729,124 @@ int main() {
         panServo.setDXLID(1);
     }
     panServo.setDeviceName(0);						// USB port ttyUSB0
-    //panServo.initPortHandler();
-    //panServo.initPacketHandler();					// Initialize Porthandler and Packethandler objects
-    /*
-    std::vector<int> positions;						// Initialize vector
-    positions.clear();								// Clear, ensure no erratic values
-    int startPos = 1024;
-    for (int a = 0; a < 5; a++) {					// Push preset Pan positions into vector
-        positions.push_back(startPos);				// Pan positions {-90, -45, 0, 45, 90}
-        startPos += 512;
-    }
-    panServo.addToGoalPosVector(positions);			// Push positions into internal Vector
-    positions.clear();								// Clear vector for Tilt next
-    */
+    
     DXLServo tiltServo;								// DXLServo object 2
     if (tiltServo.getDXLID() != 2) {				// Ensure Tilt set to ID 2
         tiltServo.setDXLID(2);
     }
     tiltServo.setDeviceName(0);						// USB port ttyUSB0
-    //tiltServo.initPortHandler();
-    //tiltServo.initPacketHandler();
-
-    /*
-    positions.push_back(1538);
-    positions.push_back(1877);
-    positions.push_back(2218);
-    positions.push_back(2560);
-    positions.push_back(2901);
-    positions.push_back(3072);						// Tilt positions {-45, -15, 15, 45, 75, 90}
-    tiltServo.addToGoalPosVector(positions);		// Push Tilt positions into internal Vector
-    positions.clear();								// Clear vector, free up memory
-    */
 
     // Begin DXL operations
-    // Open Comms ports
-    //panServo.openPort();
-    //tiltServo.openPort();
-    // Set port Baud rate using internal baudRate data
-    //panServo.setPortBaudRate();
-    //tiltServo.setPortBaudRate();
-
-    //int fd = 0;
-    //fd = open(panServo.deviceName.c_str(), O_CREAT | O_RDWR | O_NOCTTY | O_NDELAY);
+	// Open Comms ports
+    int fd = 0;
+    fd = open(panServo.deviceName.c_str(), O_CREAT | O_RDWR | O_NOCTTY | O_NDELAY);
     //fd = open(panServo.deviceName.c_str(), O_RDWR | O_NOCTTY);
-    //if(fd == -1)    cout << "unable to open" << endl;
-
-    FILE* serialPort;
-    serialPort = fopen("/dev/ttyUSB0", "r+");  //"/dev/ttyUSB0"
-    if(serialPort == NULL)
-    {
-        cout << "Error opening file." << endl;
-        return(0);
-    }
+    if(fd == -1)    cout << "unable to open USB" << endl;
+    else    cout << "USB Port Opened" << endl;
 
     //init
-    dynamixel::PortHandler *portHandler = dynamixel::PortHandler::getPortHandler(panServo.deviceName.c_str());
-    dynamixel::PacketHandler *packetHandler = dynamixel::PacketHandler::getPacketHandler(2.0);
-    // Open Port
-    if (portHandler->openPort())
-      {
-        printf("Succeeded to open the port!\n");
-      }
-      else
-      {
-        printf("Failed to open the port!\n");
-        return 0;
-      }
-    // Set port baudrate
-      if (portHandler->setBaudRate(57600))
-      {
-        printf("Succeeded to change the baudrate!\n");
-      }
-      else
-      {
-        printf("Failed to change the baudrate!\n");
-        return 0;
-      }
+    panServo.initPortHandler();
+    panServo.initPacketHandler();
+    panServo.openPort();
+    panServo.setPortBaudRate();
+
+    tiltServo.initPortHandler();
+    tiltServo.initPacketHandler();
+    tiltServo.openPort();
+    tiltServo.setPortBaudRate();
+
+    cout << "Ports Opened" << endl;
+
+    //EEPROM Write, do before enabling Torque
+    //tiltServo.setOperatingMode(2);  //Set operating mode to Position Mode, internal = 3
+    tiltServo.set4ACurrentLimit();  //Set Current Limit to 4A, val = 1190
+    tiltServo.set80rpmVelLimit();
+    int velLimit = tiltServo.getVelocityLimit();
+    cout << "Velocity Limit: " << velLimit << " rpm." << endl;
+    tiltServo.setlowAccelLimit();
+    int accLimit = tiltServo.getAccelLimit();
+    cout << "Accel Limit: " << accLimit << " rev/min2." << endl;
+    //tiltServo.setCurrentAmpsLimit(3.5);    //Set current limit to 3.5A, val = 1042
+    //tiltServo.setCurrentAmpsLimit(1200);    //Set current Limit to val = 1200, 4.032A
 
     // Enable Torque outputs
     panServo.enableTorque();
     tiltServo.enableTorque();
+    cout << "Torque Enabled" << endl;
 
-    int pan = 0, tilt = 0;
-    int currentPanPos = 0, currentTiltPos = 0, currentPanTemp = 0, currentTiltTemp = 0;
+    //int pan = 0, tilt = 0;
+    int currentPanPos = 0, currentTiltPos = 0, currentPanTemp = 0, currentTiltTemp = 0, homePanOffset = 0, homeTiltOffset = 0;
+    double currentPanI = 0, currentTiltI = 0;
+    int cycle = 3;
 
-    while (1) {
-        printf("Press any key to continue! (or press ESC to quit!)\n");
-        if (getch() == ESC_ASCII_VALUE) break;
+    while (cycle > 0) {
+        sleep(2);	// 2 sec delay
 
-       // std::cout << "Hello.\nPress enter to continue." << std::endl;
-        std::cin.get();
-
-        // Read current positions
+        // Read current positions        
         currentPanPos = panServo.readCurrentPosition();
+        homePanOffset = panServo.getHomingOffset();
+        cout << "Pan Offset: " << homePanOffset << "." << endl;
+        double anglePan = ( (double)currentPanPos * 0.088 ) - 180 - (homePanOffset * 0.088);
+        cout << "Pan Position: " << anglePan << " degrees." << endl;
+
         currentTiltPos = tiltServo.readCurrentPosition();
+        homeTiltOffset = tiltServo.getHomingOffset();
+        cout << "Tilt Offset: " << homeTiltOffset << "." << endl;
+        cout << "Tilt Pos Val: " << currentTiltPos << "." << endl;
+        double angleTilt = ( (double)currentTiltPos * 0.088 ) - 180 - (homeTiltOffset * 0.088);
+        cout << "Tilt Position: " << angleTilt << " degrees." << endl;
 
         currentPanTemp = panServo.getPresentTemperature();
+        cout << "Pan Temp: " << currentPanTemp << "C." << endl;
         currentTiltTemp = tiltServo.getPresentTemperature();
+        cout << "Tilt Temp: " << currentTiltTemp << "C." << endl;
 
+        currentPanI = panServo.getPresentCurrent();
+        cout << "Pan Current: " << std::fixed << std::setprecision(2) << currentPanI << "A." << endl;
+        currentTiltI = tiltServo.getPresentCurrent();
+        cout << "Tilt Current: " << std::fixed << std::setprecision(2)  << currentTiltI << "A." << endl;
 
-        /*
-        // Write new positions
-        panServo.writeGoalPosition(pan);
-        tiltServo.writeGoalPosition(tilt);
+        tiltServo.setProfileAcceleration(5);
+        int profileAccel = tiltServo.checkProfileAcceleration();
+        cout << "Profile Acc Val: " << profileAccel << " ." << endl;
+        tiltServo.setProfileVelocity(10);
+        int profileVel = tiltServo.checkProfileVelocity();
+        cout << "Profile Vel Val: " << profileVel << " ." << endl;
 
-        // Wait for Servos move to new positions
-        int tempPanGoal = panServo.getCurrentGoal(pan);
-        int tempTiltGoal = tiltServo.getCurrentGoal(tilt);
-        while ( abs(tempPanGoal - currentPanPos) > DXL_MOVING_STATUS_THRESHOLD || abs(tempTiltGoal - currentTiltPos) > DXL_MOVING_STATUS_THRESHOLD ) {
-            currentPanPos = panServo.readCurrentPosition();
-            currentTiltPos = tiltServo.readCurrentPosition();
+        tiltServo.writeGoalPosition(1);
+        std::vector<int> tiltGoals;
+        tiltGoals.clear();
+        tiltGoals.push_back(1830);
+        tiltGoals.push_back(1900);
+        tiltGoals.push_back(1700);
+        tiltServo.addToGoalPosVector(tiltGoals);
+        int checkGPV = tiltServo.checkGoalPosVector();
+        tiltServo.writeGoalPosition(1);
+        sleep(2);
+        tiltServo.writeGoalPosition(1, 2000);
+        sleep(2);
+        tiltServo.writeGoalPosition(0, 2);
+        sleep(2);
 
-            // Print line stating move status of both motors
-            printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", panServo.getDXLID(), tempPanGoal, currentPanPos, tiltServo.getDXLID(), tempTiltGoal, currentTiltPos);
-        }
-
-        // Change Goal Position reference index for next loop
-        pan++;
-        if (pan == 5) pan = 0;
-        tilt++;
-        if (tilt == 6) tilt = 0;
-        */
+        cycle -= 1;
     }
 
     // Disable DXLs Torque outputs
     panServo.disableTorque();
     tiltServo.disableTorque();
+    cout << "Torque Disabled" << endl;
 
-    portHandler->closePort();
-    //close(fd);
+    //panServo.prtHandler->closePort();
+    close(fd);
     // Close Comms port
-    //panServo.closePort();
-    //tiltServo.closePort();
+    panServo.closePort();
+    tiltServo.closePort();
+    cout << "Ports Closed" << endl;
 
     return 0;
 }
 // End of C++ Example Code using DXLServo functions
-//*/
+*/
 
 // C Style code of SDK functions
 /*int main()
