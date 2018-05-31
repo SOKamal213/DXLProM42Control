@@ -1,5 +1,13 @@
 #pragma once
 
+/*///////////////////////////////////////////////////////////////////////////////
+Created by: Sayyed Omar Kamal
+Date: 31 May 2018
+
+For Dynamixel Pro servos, based on MX-64 servo control. Basic C++ function calls working properly in Linux. 
+TOADD: Pro servo address and additional functions
+*////////////////////////////////////////////////////////////////////////////////
+
 #if defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>
 #include <termios.h>
@@ -14,6 +22,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 
 #include <stdlib.h>
@@ -30,6 +39,7 @@
 #define ADDR_MX_BAUD_RATE				8
 #define ADDR_MX_OPERATING_MODE			11
 #define ADDR_MX_PROTOCOL_VERSION		13
+#define ADDR_MX_HOMING_OFFSET   		20
 #define ADDR_MX_TEMPERATURE_LIMIT		31
 #define ADDR_MX_CURRENT_LIMIT			38
 #define ADDR_MX_ACCELERATION_LIMIT		40
@@ -66,9 +76,6 @@
 #define DXL_CURRENT_LIMIT_4A				1190				// Current Limit set value for 4 Amps maximum, MX-64R stall current: 4.1A at 12V
 #define DXL_ACCELERATION_LIMIT_LOW			30					// Acceleration Limit set value for 6437 rev/min2 maximum
 #define DXL_VELOCITY_LIMIT_80				350					// Velocity Limit set value for 80.15 rpm maximum
-//#define DXL_POSITION_VALUE_N90				1023				// Position value for -90 degrees
-//#define DXL_POSITION_VALUE_P90				3068				// Max move limit for Pan: +90
-//#define DXL_POSITION_VALUE_N45				1534				// Min move limit for Tilt: -45
 
 //General servo data values
 #define TORQUE_ENABLE                   1                   // Value for enabling the torque
@@ -84,22 +91,12 @@
 
 #define ESC_ASCII_VALUE                 0x1b
 
+//TOCHANGE: portHandler and packetHandler do not need to be instanced for each DXL Servo. Make another class specifically for porHandler and packetHandler.
+
 class DXLServo {
 private:
-	double protocolVersion;
 	std::vector<int> goalPositionVector;
-	uint8_t dxl_error;
-	int32_t present_position, present_current, present_temperature;
-	int dxl_comm_result, baudRate, identity, limitAccel, limitVel, profileAccel, profileVel, limitCurrent, limitPosMin, limitPosMax;
-	
-    //#if defined(__linux__) || defined(__APPLE__)
-    //std::string deviceName = std::string( "/dev/ttyUSB" );
-    //#elif defined(_WIN32) || defined(_WIN64)
-    //std::string deviceName = std::string( "COM" );
-    //#endif
-	
-	dynamixel::PortHandler *portHandler;
-	dynamixel::PacketHandler *packetHandler;
+    int  limitAccel, limitVel, profileAccel, profileVel, limitCurrent, limitPosMin, limitPosMax;
 
 protected:
 
@@ -107,10 +104,21 @@ public:
 	DXLServo();
 	~DXLServo();
 
-    std::string deviceName = std::string( "/dev/ttyUSB" );
+    double protocolVersion;
+    uint8_t dxl_error;
+    int dxl_comm_result, baudRate, identity;
+    int present_position, present_temperature;
+    double present_current;
 
-	//std::string deviceName;
-	//std::string setDeviceName(int deviceNum) {
+    dynamixel::PortHandler *prtHandler;
+    dynamixel::PacketHandler *pktHandler;
+
+    std::string deviceName = std::string( "/dev/ttyUSB" );
+    //#if defined(__linux__) || defined(__APPLE__)
+    //std::string deviceName = std::string( "/dev/ttyUSB" );
+    //#elif defined(_WIN32) || defined(_WIN64)
+    //std::string deviceName = std::string( "COM" );
+    //#endif
 
 	void setDXLID( int dxlNum ) {
 		identity = dxlNum;
@@ -132,20 +140,20 @@ public:
 		deviceName = sstm.str();
 	}
 
-	void initPortHandler() {
-		dynamixel::PortHandler *portHandler = dynamixel::PortHandler::getPortHandler(deviceName.c_str());
+    void initPortHandler() {
+        this->prtHandler = dynamixel::PortHandler::getPortHandler(deviceName.c_str());
 	}
 
 	void setProtocolVersion(double protocolNum) {				// Set Protocol 1.0 or 2.0
 		protocolVersion = protocolNum;
 	}
 
-	void initPacketHandler() {
-		dynamixel::PacketHandler *packetHandler = dynamixel::PacketHandler::getPacketHandler(protocolVersion);
+    void initPacketHandler() {
+        this->pktHandler = dynamixel::PacketHandler::getPacketHandler(protocolVersion);
 	}
 
 	void openPort() {			// Open comms port to DXL
-        if (portHandler->openPort())
+        if (this->prtHandler->openPort())
 		{
 			printf("Succeeded to open the port!\n");
 		}
@@ -162,11 +170,11 @@ public:
 	}
 
 	void closePort() {
-		portHandler->closePort();
+        this->prtHandler->closePort();
 	}
 
 	void setPortBaudRate() {
-		if (portHandler->setBaudRate(baudRate))
+        if (this->prtHandler->setBaudRate(baudRate))
 		{
 			printf("Succeeded to change the baudrate!\n");
 		}
@@ -203,20 +211,24 @@ public:
 
 	void set80rpmVelLimit();								// Set Velocity limit to 80.15 rpm, value predefined in header
 	void setVelocityLimit(int limit);						// Set Velocity limit between 0 - 1023, velocity = limit * 0.229rpm {externally calculated}
+    int getVelocityLimit();                                 // Return Velocity Limit set in DXL
 
 	void setlowAccelLimit();								// Set Acceleration limit to 30 * 214.577 = 6437 rev/min2, value predefined in header
 	void setAccelLimit(int limit);							// Set Acceleration limit between 0 - 100, accel = limit * 214.577rev/min2 {externally calculated}, actual limit = 32767 but limited to 100 as 7million rev/min2 is far too large accel for safe operation.
+    int getAccelLimit();                                    // Return Acceleration Limit set in DXL. Value multiply 214.517rev/mim2.
 
 	void setPositionLimit(bool minMax, int angle);			// Set Position Limit; minMax: false for Min (Lower) limit, true for Max (Upper) limit; angle between -180 and +180 degrees
 
 	void setProfileAcceleration(int accel);					// Set Profile Acceleration, accel must be between 1 and limit set in EEPROM, 0 not allowed so no infinite acceleration
 	int checkProfileAcceleration();							// Check value of Profile Acceleration in DXL RAM
 	void setProfileVelocity(int vel);						// Set Profile Velocity, vel must be between 1 and limit set in EEPROM, 0 not allowed so no infinite velocity
-	int checkProfileVelocity();								// Check value of Profile Velocity in DXL RAM
+    int checkProfileVelocity();								// Check value of Profile Velocity in DXL RAM. Value multiply 0.229rpm
 
 	int checkPresentTemperature();							// Check Present Temperature, compare against limit, warning at 10% from limit
 	int getPresentTemperature();							// Return Presnt Temperature value, for displaying value externally
 
 	int checkPresentCurrent();								// Check Present Current, compare against limit, warning at 10% from limit, error at/beyond limit
-	int getPresentCurrent();								// Return Present Current value, for displaying externally
+    double getPresentCurrent();								// Return Present Current value, for displaying externally
+
+    int getHomingOffset();
 };
