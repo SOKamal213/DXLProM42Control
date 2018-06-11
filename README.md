@@ -7,9 +7,11 @@ Dynamixel SDK doesn't explain well and barely any resources online, so why not..
 
 ## Getting Started
 
-Install DynamixelSDK3.x minimum, [Dynamixel SDK](https://github.com/ROBOTIS-GIT/DynamixelSDK)
+Install DynamixelSDK3.x minimum, [Dynamixel SDK](https://github.com/ROBOTIS-GIT/DynamixelSDK). Set up your environment, build SDK.
 
-Later, 31 May 2018
+Get this repo, add to your project, link the SDK libs, include and src files, uncomment sample test code in .cpp file. 
+
+Later, 11 June 2018
 ### Prerequisites
 
 What things you need to install the software and how to install them
@@ -76,13 +78,13 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Sayyed Omar Kamal** - *Initial work*
 
 See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the Apache 2.0 License - see the [LICENSE.md](LICENSE.md) file for details
 
 ## Acknowledgments
 
